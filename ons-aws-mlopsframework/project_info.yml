@@ -1,0 +1,6 @@
+author: ONS-Data Science Squad
+project_name: projeto-padrao
+squad: data-science
+type: batch
+python_version: 3
+description: estrutura de projeto padrao para projetos de ciencia de dados.

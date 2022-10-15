@@ -1,0 +1,13 @@
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Images
+images
+.png
+.jpg

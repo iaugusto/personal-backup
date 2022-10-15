@@ -1,0 +1,7 @@
+author: Tenbu
+project_name: medicao-indireta
+squad: iot
+type: batch
+python_version: 3
+
+description: produto de medicao indiret Tenbu.

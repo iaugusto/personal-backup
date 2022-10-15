@@ -1,0 +1,28 @@
+version: "3.3"
+
+services:
+  
+  base:
+    image: base_image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports: 
+      - "5432:5432"
+      - "9090:9090"
+
+  train:
+    image: base_image
+    user: root
+    volumes:
+      - .:/usr/app/
+    working_dir: /usr/app/
+    command: "python3 src/train.py"
+
+  predict:
+    image: base_image
+    user: root
+    volumes:
+      - .:/usr/app/
+    working_dir: /usr/app/
+    command: "python3 src/predict.py"

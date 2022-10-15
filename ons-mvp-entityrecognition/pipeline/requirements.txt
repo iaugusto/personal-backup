@@ -1,0 +1,7 @@
+spacy
+boto3
+sagemaker
+awswrangler
+sagemaker-studio-image-build
+fsspec
+s3fs

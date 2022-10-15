@@ -1,0 +1,1058 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-condition-deploy-endpoint-1": {
+        "dag": {
+          "tasks": {
+            "deploy-endpoint": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-deploy-endpoint"
+              },
+              "inputs": {
+                "artifacts": {
+                  "model_": {
+                    "componentInputArtifact": "pipelineparam--train-model-model_"
+                  }
+                },
+                "parameters": {
+                  "artifact_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "gs://{{$.inputs.parameters['pipelineparam--bucket']}}/{{$.inputs.parameters['pipelineparam--artifact_path']}}"
+                      }
+                    }
+                  },
+                  "container_uri": {
+                    "componentInputParameter": "pipelineparam--model_serving_image"
+                  },
+                  "model_label": {
+                    "componentInputParameter": "pipelineparam--model_label"
+                  },
+                  "pipelineparam--artifact_path": {
+                    "componentInputParameter": "pipelineparam--artifact_path"
+                  },
+                  "pipelineparam--bucket": {
+                    "componentInputParameter": "pipelineparam--bucket"
+                  },
+                  "project_id": {
+                    "componentInputParameter": "pipelineparam--project_id"
+                  },
+                  "region": {
+                    "componentInputParameter": "pipelineparam--region"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "deploy-endpoint"
+              }
+            },
+            "deploy-model-monitoring-job": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-deploy-model-monitoring-job"
+              },
+              "dependentTasks": [
+                "deploy-endpoint"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "baseline_df_": {
+                    "componentInputArtifact": "pipelineparam--feature-selection-sequence-baseline_df_"
+                  },
+                  "endpoint_information_": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "endpoint_information_",
+                      "producerTask": "deploy-endpoint"
+                    }
+                  }
+                },
+                "parameters": {
+                  "baseline_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "gs://{{$.inputs.parameters['pipelineparam--bucket']}}/artifacts/training_pipeline/baseline/"
+                      }
+                    }
+                  },
+                  "pipelineparam--bucket": {
+                    "componentInputParameter": "pipelineparam--bucket"
+                  },
+                  "region": {
+                    "componentInputParameter": "pipelineparam--region"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "deploy-model-monitoring-job"
+              }
+            },
+            "save-consolidated-artifacts": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-save-consolidated-artifacts"
+              },
+              "dependentTasks": [
+                "deploy-endpoint",
+                "deploy-model-monitoring-job"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "endpoint_information_": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "endpoint_information_",
+                      "producerTask": "deploy-endpoint"
+                    }
+                  },
+                  "fe_pipeline_": {
+                    "componentInputArtifact": "pipelineparam--feature-engineering-sequence-fe_pipeline_"
+                  },
+                  "fs_pipeline_": {
+                    "componentInputArtifact": "pipelineparam--feature-selection-sequence-fs_pipeline_"
+                  },
+                  "metrics_": {
+                    "componentInputArtifact": "pipelineparam--train-model-metrics_"
+                  },
+                  "model_": {
+                    "componentInputArtifact": "pipelineparam--train-model-model_"
+                  },
+                  "model_monitor_information_": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "model_monitor_information_",
+                      "producerTask": "deploy-model-monitoring-job"
+                    }
+                  }
+                },
+                "parameters": {
+                  "bucket": {
+                    "componentInputParameter": "pipelineparam--bucket"
+                  },
+                  "consolidated_artifacts_path": {
+                    "componentInputParameter": "pipelineparam--consolidated_artifacts_path"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "save-consolidated-artifacts"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "artifacts": {
+            "pipelineparam--feature-engineering-sequence-fe_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--feature-selection-sequence-baseline_df_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--feature-selection-sequence-fs_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--train-model-metrics_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--train-model-model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "pipelineparam--artifact_path": {
+              "type": "STRING"
+            },
+            "pipelineparam--bucket": {
+              "type": "STRING"
+            },
+            "pipelineparam--consolidated_artifacts_path": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluate-model-deploy": {
+              "type": "STRING"
+            },
+            "pipelineparam--model_label": {
+              "type": "STRING"
+            },
+            "pipelineparam--model_serving_image": {
+              "type": "STRING"
+            },
+            "pipelineparam--project_id": {
+              "type": "STRING"
+            },
+            "pipelineparam--region": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-deploy-endpoint": {
+        "executorLabel": "exec-deploy-endpoint",
+        "inputDefinitions": {
+          "artifacts": {
+            "model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "artifact_uri": {
+              "type": "STRING"
+            },
+            "container_uri": {
+              "type": "STRING"
+            },
+            "model_label": {
+              "type": "STRING"
+            },
+            "project_id": {
+              "type": "STRING"
+            },
+            "region": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "endpoint_information_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "vertex_endpoint": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "vertex_model": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-deploy-model-monitoring-job": {
+        "executorLabel": "exec-deploy-model-monitoring-job",
+        "inputDefinitions": {
+          "artifacts": {
+            "baseline_df_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "endpoint_information_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "baseline_path": {
+              "type": "STRING"
+            },
+            "region": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model_monitor_information_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-evaluate-model": {
+        "executorLabel": "exec-evaluate-model",
+        "inputDefinitions": {
+          "artifacts": {
+            "metrics_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "roc_threshold": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "deploy": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-feature-engineering-sequence": {
+        "executorLabel": "exec-feature-engineering-sequence",
+        "inputDefinitions": {
+          "artifacts": {
+            "Xtrain_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "Xtrain_fe": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_fe": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fe_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-feature-selection-sequence": {
+        "executorLabel": "exec-feature-selection-sequence",
+        "inputDefinitions": {
+          "artifacts": {
+            "Xtrain_fe": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_fe": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "ytrain_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "yval_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "Xtrain_fs": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_fs": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "baseline_df_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fs_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-get-preprocessed-data": {
+        "executorLabel": "exec-get-preprocessed-data",
+        "inputDefinitions": {
+          "parameters": {
+            "prefix": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "Xtrain_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "ytrain_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "yval_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-save-consolidated-artifacts": {
+        "executorLabel": "exec-save-consolidated-artifacts",
+        "inputDefinitions": {
+          "artifacts": {
+            "endpoint_information_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fe_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fs_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "metrics_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model_monitor_information_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "bucket": {
+              "type": "STRING"
+            },
+            "consolidated_artifacts_path": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-train-model": {
+        "executorLabel": "exec-train-model",
+        "inputDefinitions": {
+          "artifacts": {
+            "Xtrain_fs": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "Xval_fs": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "ytrain_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "yval_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "artifact_path": {
+              "type": "STRING"
+            },
+            "bucket": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "metrics_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-deploy-endpoint": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "deploy_endpoint"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef deploy_endpoint(\n    model_: Input[Model],\n    vertex_endpoint: Output[Artifact],\n    vertex_model: Output[Model],\n    endpoint_information_: Output[Model],\n    project_id:str='gpa-poc-001',\n    model_label:str='churn',\n    region:str=\"us-central1\",\n    container_uri:str=\"us-docker.pkg.dev/vertex-ai/prediction/xgboost-cpu.1-5:latest\",\n    artifact_uri:str='gs://gpa-churn/artifacts/training_pipeline/xgb/'\n    ):\n\n    import os\n    import gc\n    import sys\n    import json\n    import joblib\n    import numpy as np\n    import pandas as pd\n    import xgboost as xgb\n    from datetime import datetime\n    from google.cloud import storage\n    from google.cloud import aiplatform\n\n    endpoint_name = f'{model_label}-endpoint'\n    display_name = f'{model_label}-xgb'\n    model_name = f'{model_label}-xgb'\n\n    # Create endpoint\n    #-------------------------------------------------------\n    endpoints = aiplatform.Endpoint.list(\n        filter='display_name=\"{}\"'.format(endpoint_name),\n        order_by='create_time desc',\n        project=project_id, \n        location=region,\n        )\n\n    if len(endpoints) > 0:\n        endpoint = endpoints[0]  # most recently created\n    else:\n        endpoint = aiplatform.Endpoint.create(\n        display_name=endpoint_name, project=project_id, location=region)\n\n    # Import a model programmatically\n    #-------------------------------------------------------\n    model_upload = aiplatform.Model.upload(\n        display_name = display_name, \n        artifact_uri = artifact_uri,\n        serving_container_image_uri =  container_uri,\n        serving_container_health_route=f\"/v1/models/{model_name}\",\n        serving_container_predict_route=f\"/v1/models/{model_name}:predict\",\n        serving_container_environment_variables={\n        \"model_name\": model_name,\n        },       \n        )\n\n    model_deploy = model_upload.deploy(\n        machine_type=\"n1-standard-4\", \n        endpoint=endpoint,\n        traffic_split={\"0\": 100},\n        deployed_model_display_name=display_name,\n        )\n\n    # Save data to the output params\n    #-------------------------------------------------------\n    vertex_model.uri = model_deploy.resource_name\n\n    # Save endpoint.resource_name for prediction reference\n    #-------------------------------------------------------\n    endpoint_information_dict = {\n        'project_number':str(model_deploy.resource_name.split('/')[1]),\n        'endpoint':str(model_deploy.resource_name.split('/')[-1])\n    }\n    with open(endpoint_information_.path+'.json', 'w') as file:\n        json.dump(endpoint_information_dict, file)\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-deploy-model-monitoring-job": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "deploy_model_monitoring_job"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef deploy_model_monitoring_job(\n    baseline_df_: Input[Dataset],\n    endpoint_information_: Input[Model],\n    model_monitor_information_: Output[Model],\n    region:str='us-central1',\n    baseline_path:str='gs://gpa-churn/artifacts/training_pipeline/baseline/'\n    ):\n\n    import os\n    import sys\n    import json\n    import pandas as pd\n\n    # reading inputs\n    #-------------------------------------------------------\n    baseline_df = pd.read_parquet(baseline_df_.path+'.parquet')\n    with open(endpoint_information_.path+'.json', 'r') as file:\n        endpoint_information = json.load(file)\n    endpoint = endpoint_information['endpoint']\n\n    # saving baseline for model monitor in cloud storage\n    #-------------------------------------------------------\n    baseline_df.to_csv(baseline_path+'data.csv', index=False)\n\n    # creating feature_thresh_description from feature_list\n    #-------------------------------------------------------\n    feature_list = list(baseline_df.columns) # ['feature1', 'feature2', ..., 'target']\n    feature_list = [i for i in feature_list if i != 'target']\n    feature_thresh_description = ''.join(i+'=0.3,' for i in feature_list)[0:-1]\n\n    # deploy or update model monitoring job\n    #-------------------------------------------------------\n    sdk_command = f'gcloud beta ai model-monitoring-jobs list --region={region} --project=gpa-poc-001'\n    os_string_output = os.popen(sdk_command).read()\n    if os_string_output != '':\n        mmjob_name = os_string_output.split('job-')[1].split('/')[0].split('\\n')[0]\n        update_mmjob_command = f'gcloud beta ai model-monitoring-jobs update ({mmjob_name} --region={region} -- project=gpa-poc-001) \\\n        --emails=italo.avila@tenbu.com.br \\\n        --endpoint={endpoint} \\\n        --prediction-sampling-rate=0.5 \\\n        --monitoring-frequency=1 \\\n        --target-field=target \\\n        --training-sampling-rate=1.0 \\\n        --data-format=csv \\\n        --gcs-uris=gs://gpa-churn/artifacts/training_pipeline/baseline/data.csv \\\n        --feature-thresholds={feature_thresh_description}'\n        os.system(update_mmjob_command)\n    else:\n        print(f'No model monitoring jobs deployed in region={region}')\n        deploy_mmjob_command = f'gcloud beta ai model-monitoring-jobs create --display-name=churn-model-monitor \\\n        --project=gpa-poc-001 \\\n        --emails=italo.avila@tenbu.com.br \\\n        --endpoint={endpoint} \\\n        --prediction-sampling-rate=0.5 \\\n        --monitoring-frequency=1 \\\n        --region={region} \\\n        --target-field=target \\\n        --training-sampling-rate=1.0 \\\n        --data-format=csv \\\n        --gcs-uris=gs://gpa-churn/artifacts/training_pipeline/baseline/data.csv \\\n        --feature-thresholds={feature_thresh_description}'\n        os.system(deploy_mmjob_command)\n\n    # save model monitor information\n    #-------------------------------------------------------\n    os_string_output = os.popen(sdk_command).read()\n    mmjob_name = os_string_output.split('job-')[1].split('/')[0].split('\\n')[0]\n    model_monitor_information = {\n        'project':'gpa-poc-001',\n        'region':region,\n        'model_monitor_id':mmjob_name\n    }\n    with open(model_monitor_information_.path+'.json', 'w') as file:\n        json.dump(model_monitor_information, file)\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb-gcloud@sha256:0985f7e13d3d1f234462e7e0b32f8e2563c0ca312006a4361e593e27a43bce5c"
+          }
+        },
+        "exec-evaluate-model": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "evaluate_model"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef evaluate_model(\n    metrics_: Input[Dataset],\n    roc_threshold:float=0.80\n    ) -> NamedTuple('output', [('deploy', str)]):\n\n    import pandas as pd\n\n    metrics = pd.read_parquet(metrics_.path + '.parquet')\n    cond = \"false\"\n    if float(metrics['roc'].iloc[0]) >= float(roc_threshold):\n        cond=\"true\"\n\n    return (cond,)\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-feature-engineering-sequence": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "feature_engineering_sequence"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef feature_engineering_sequence(\n    Xtrain_: Input[Dataset],\n    Xval_: Input[Dataset],\n    Xtrain_fe: Output[Dataset],\n    Xval_fe: Output[Dataset],\n    fe_pipeline_: Output[Model]\n    ):\n\n    import os\n    import sys\n    import pytz\n    import joblib\n    import pandas as pd\n    from datetime import datetime\n    from google.cloud import storage\n    from sklearn.pipeline import Pipeline\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.pipeline_modules as pipeline_modules\n\n    Xtrain = pd.read_parquet(Xtrain_.path + \".parquet\")\n    Xval = pd.read_parquet(Xval_.path + \".parquet\")\n\n    numerical_columns = [\n        'val_venda_bruta_cupom',\n        'qtd_item_venda',\n        'flg_vend_meu_desct',\n        'valor_desconto',\n        'flag_dev',\n        'tipo_promo_0',\n        'tipo_promo_1',\n        'tipo_promo_2',\n        'tipo_promo_3',\n        'tipo_promo_4',\n        'tipo_promo_5',\n        'categoria_0',\n        'categoria_1',\n        'categoria_2',\n        'categoria_3',\n        'categoria_4',\n        'categoria_5',\n        'categoria_6',\n        'categoria_7',\n        'departamento_0',\n        'compras_mes',\n        'agg_l3m_val_venda_bruta_cupom',\n        'agg_l3m_qtd_item_venda',\n        'agg_l3m_flg_vend_meu_desct',\n        'agg_l3m_valor_desconto',\n        'agg_l3m_flag_dev',\n        'agg_l3m_tipo_promo_0',\n        'agg_l3m_tipo_promo_1',\n        'agg_l3m_tipo_promo_2',\n        'agg_l3m_tipo_promo_3',\n        'agg_l3m_tipo_promo_4',\n        'agg_l3m_tipo_promo_5',\n        'agg_l3m_categoria_0',\n        'agg_l3m_categoria_1',\n        'agg_l3m_categoria_2',\n        'agg_l3m_categoria_3',\n        'agg_l3m_categoria_4',\n        'agg_l3m_categoria_5',\n        'agg_l3m_categoria_6',\n        'agg_l3m_categoria_7',\n        'agg_l3m_departamento_0',\n        'agg_l3m_compras_mes',\n    ]\n\n    outlier_columns_mean = [\n        'pib_percapita',\n        'idade',\n        'delta_de_cadastro',\n        'delta_de_stix'\n    ]\n\n    yeojohnson_columns = [\n        'val_venda_bruta_cupom',\n        'qtd_item_venda',\n        'flg_vend_meu_desct',\n        'valor_desconto',\n        'compras_mes',\n        'agg_l3m_val_venda_bruta_cupom',\n        'agg_l3m_qtd_item_venda',\n        'agg_l3m_flg_vend_meu_desct',\n        'agg_l3m_valor_desconto',\n        'agg_l3m_compras_mes',\n        'pib_percapita',\n        'idade',\n        'delta_de_cadastro'\n    ]\n\n    # training set\n    #-------------------------------------------------------\n    fe_pipeline = Pipeline([\n        ('drop_temporary_columns', pipeline_modules.drop_temporary_columns()),\n        ('drop_with_low_variance', pipeline_modules.drop_numerical_with_variance(columns=numerical_columns)),\n        ('encode_sex_column', pipeline_modules.encode_sex_column()),\n        ('group_rare_regions', pipeline_modules.group_rare_categorical(columns=['region'], threshold=0.002)),\n        ('encode_regions', pipeline_modules.encode_categorical(columns=['region'])),\n        ('handle_outliers_max', pipeline_modules.outlier_handling(\n            columns=numerical_columns, \n            method='gauss', \n            band=2.8, \n            action='max')),\n        ('handle_outliers_mean', pipeline_modules.outlier_handling(\n            columns=outlier_columns_mean, \n            method='gauss', \n            band=2.5, \n            action='mean')),\n        ('handle_negative_values', pipeline_modules.handle_negative_values(columns=numerical_columns)),\n        ('fill_missing_numerical_zero', pipeline_modules.fill_na_values_with_zero(\n            columns=['ind_email','cadastro_stix','delta_de_cadastro','delta_de_stix'])),\n        ('fill_missing_numerical_mean', pipeline_modules.fill_na_values_with_zero(\n            columns=['pib_percapita','idade'])),\n        ('transform_yeojohnson', pipeline_modules.data_transformation(\n            columns=yeojohnson_columns, \n            method='yeojohnson'))\n    ])\n\n    Xtrain = fe_pipeline.fit_transform(Xtrain)\n\n    # validation set\n    #-------------------------------------------------------\n    Xval = fe_pipeline.transform(Xval)\n\n    # save feature engineering artifacts\n    #-------------------------------------------------------\n    file_name = fe_pipeline_.path + '.joblib'\n    with open(file_name, 'wb') as file:\n        joblib.dump(fe_pipeline, file)\n\n    Xtrain.to_parquet(Xtrain_fe.path + '.parquet', index=False, compression='gzip')\n    Xval.to_parquet(Xval_fe.path + '.parquet', index=False, compression='gzip')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-feature-selection-sequence": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "feature_selection_sequence"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef feature_selection_sequence(\n    Xtrain_fe: Input[Dataset],\n    Xval_fe: Input[Dataset],\n    ytrain_: Input[Dataset],\n    yval_: Input[Dataset],\n    Xtrain_fs: Output[Dataset],\n    Xval_fs: Output[Dataset],\n    fs_pipeline_: Output[Model],\n    baseline_df_: Output[Dataset]\n    ):\n\n    import os\n    import sys\n    import pytz\n    import joblib\n    import pandas as pd\n    from datetime import datetime\n    from google.cloud import storage\n    from sklearn.pipeline import Pipeline\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.utils as utils\n    import src.pipeline_modules as pipeline_modules\n\n    Xtrain = pd.read_parquet(Xtrain_fe.path + \".parquet\")\n    Xval = pd.read_parquet(Xval_fe.path + \".parquet\")\n    ytrain = pd.read_parquet(ytrain_.path + \".parquet\")\n    yval = pd.read_parquet(yval_.path + \".parquet\")\n\n    # training set\n    #-------------------------------------------------------\n    fs_pipeline = Pipeline([\n            ('select_with_correlation', pipeline_modules.select_with_correlation(\n                threshold=0.82, \n                method='recursive',\n                objective='classification'))\n        ])\n\n    Xtrain = fs_pipeline.fit_transform(Xtrain, ytrain)\n\n    # validation set\n    #-------------------------------------------------------\n    Xval = fs_pipeline.transform(Xval)\n\n    # create baseline for model monitoring\n    #-------------------------------------------------------\n    baseline_df = pd.concat([Xtrain, ytrain], axis=1)\n\n    # save feature selection artifacts\n    #-------------------------------------------------------\n    file_name = fs_pipeline_.path + '.joblib'\n    with open(file_name, 'wb') as file:\n        joblib.dump(fs_pipeline, file)\n\n    # save pipeline datasets\n    #-------------------------------------------------------\n    Xtrain.to_parquet(Xtrain_fs.path + '.parquet', index=False, compression='gzip')\n    Xval.to_parquet(Xval_fs.path + '.parquet', index=False, compression='gzip')\n    baseline_df.to_parquet(baseline_df_.path + '.parquet', index=False, compression='gzip')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-get-preprocessed-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "get_preprocessed_data"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_preprocessed_data(\n    Xtrain_: Output[Dataset],\n    Xval_: Output[Dataset],\n    ytrain_: Output[Dataset],\n    yval_: Output[Dataset],\n    prefix:str='gs://gpa-churn/data/processed/input/'\n    ):\n\n    import os\n    import gc\n    import sys\n    import numpy as np\n    import pandas as pd\n    from google.cloud import storage\n    from sklearn.model_selection import train_test_split\n\n    bucket = prefix.split('/')[2]\n    storage_client = storage.Client()\n    obj_list = storage_client.list_blobs(bucket)\n    obj_list = [i.name for i in obj_list if 'data/processed/input/' in i.name]\n    obj_list = obj_list[1:]\n    df_list = []\n    for obj in obj_list:\n        local_df = pd.read_parquet('gs://gpa-churn/'+obj)\n        df_list.append(local_df)\n        print(f'added {prefix}{obj}')\n\n    df = pd.concat(df_list, axis=0)\n    df.drop(columns=['cod_cliente'], inplace=True)\n    df.drop_duplicates(inplace=True)\n    df.reset_index(drop=True, inplace=True)\n\n    target = 'target'\n    features = list(df.columns)\n    features = [i for i in features if i != target]\n\n    Xtrain, Xval, ytrain, yval = train_test_split(\n        df[features], \n        df[[target]],\n        test_size=0.15, \n        random_state=501\n        )\n\n    del df\n    gc.collect()\n\n    Xtrain.reset_index(drop=True, inplace=True)\n    Xval.reset_index(drop=True, inplace=True)\n    ytrain.reset_index(drop=True, inplace=True)\n    yval.reset_index(drop=True, inplace=True)\n    print('Successfully read training data')\n    print('shapes:')\n    print(f'xtrain:{Xtrain.shape}, ytrain:{ytrain.shape}')\n    print(f'xval:{Xval.shape}, yval:{yval.shape}')\n\n    Xtrain.to_parquet(Xtrain_.path + '.parquet', index=False, compression='gzip')\n    Xval.to_parquet(Xval_.path + '.parquet', index=False, compression='gzip')\n    ytrain.to_parquet(ytrain_.path + '.parquet', index=False, compression='gzip')\n    yval.to_parquet(yval_.path + '.parquet', index=False, compression='gzip')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-save-consolidated-artifacts": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "save_consolidated_artifacts"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef save_consolidated_artifacts(\n    model_: Input[Model],\n    fe_pipeline_: Input[Model],\n    fs_pipeline_: Input[Model],\n    endpoint_information_: Input[Model],\n    model_monitor_information_: Input[Model],\n    metrics_: Input[Dataset],\n    bucket:str='gpa-churn',\n    consolidated_artifacts_path:str='artifacts/training_pipeline/production/'\n    ):\n\n    import os\n    import gc\n    import sys\n    import json\n    import joblib\n    import numpy as np\n    import pandas as pd\n    import xgboost as xgb\n    from datetime import datetime\n    from google.cloud import storage\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.utils as utils\n    import src.pipeline_modules as pipeline_modules\n\n    # loading artifacts\n    #-------------------------------------------------------\n    bst = xgb.Booster()\n    bst.load_model(model_.path+'.bst')\n    fe_pipeline = joblib.load(fe_pipeline_.path+'.joblib')\n    fs_pipeline = joblib.load(fs_pipeline_.path+'.joblib')\n    with open(endpoint_information_.path+'.json', 'r') as file:\n        endpoint_information = json.load(file)\n    with open(model_monitor_information_.path+'.json', 'r') as file:\n        model_monitor_information = json.load(file)\n    metrics = pd.read_parquet(metrics_.path+'.parquet')\n\n    # getting bucket\n    #-------------------------------------------------------\n    storage_client = storage.Client()\n    bucket_ = storage_client.get_bucket(bucket)\n\n    # saving pipelines in artifact path\n    #-------------------------------------------------------\n    pipe_list = [fe_pipeline, fs_pipeline]\n    pipe_label_list = ['fe_pipeline.joblib', 'fs_pipeline.joblib']\n    for i in range(len(pipe_list)):\n        art_file=f'{consolidated_artifacts_path}{pipe_label_list[i]}'\n        blob = bucket_.blob(art_file)\n        joblib.dump(pipe_list[i], pipe_label_list[i])\n        blob.upload_from_filename(pipe_label_list[i])\n\n    # saving endpoint_information in artifact path\n    #-------------------------------------------------------\n    file_name = 'endpoint_information.json'\n    with open(file_name, 'w') as file:\n        json.dump(endpoint_information, file)\n    art_file=f'{consolidated_artifacts_path}{file_name}'\n    blob = bucket_.blob(art_file)\n    blob.upload_from_filename(file_name)\n\n    # saving model_monitoring_information in artifact path\n    #-------------------------------------------------------\n    file_name = 'model_monitor_information.json'\n    with open(file_name, 'w') as file:\n        json.dump(model_monitor_information, file)\n    art_file=f'{consolidated_artifacts_path}{file_name}'\n    blob = bucket_.blob(art_file)\n    blob.upload_from_filename(file_name)\n\n    # upload local model to cloud storage\n    #-------------------------------------------------------\n    file_name = 'model.bst'\n    bst.save_model(file_name)\n    art_file=f'{consolidated_artifacts_path}{file_name}'\n    blob = bucket_.blob(art_file)\n    blob.upload_from_filename(file_name)\n\n    # saving metrics\n    #-------------------------------------------------------\n    file_name = 'metrics.parquet'\n    metrics_path = f'gs://{bucket}/{consolidated_artifacts_path}{file_name}'\n    metrics.to_parquet(metrics_path, index=False, compression='gzip')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-train-model": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "train_model"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef train_model(\n    Xtrain_fs: Input[Dataset],\n    Xval_fs: Input[Dataset],\n    ytrain_: Input[Dataset],\n    yval_: Input[Dataset],\n    model_: Output[Model],\n    metrics_: Output[Dataset],\n    bucket:str='gpa-churn',\n    artifact_path:str='artifacts/training_pipeline/xgb/'\n    ):\n\n    import os\n    import sys\n    import pytz\n    import joblib\n    import pandas as pd\n    import xgboost as xgb\n    from datetime import datetime\n    from google.cloud import storage\n    from sklearn.pipeline import Pipeline\n    from sklearn.metrics import precision_score, recall_score, f1_score\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.utils as utils\n    import src.pipeline_modules as pipeline_modules\n    from src.guara.modeling.supervised_modelz import SupervisedModelz\n\n    Xtrain = pd.read_parquet(Xtrain_fs.path + \".parquet\")\n    Xval = pd.read_parquet(Xval_fs.path + \".parquet\")\n    ytrain = pd.read_parquet(ytrain_.path + \".parquet\")\n    yval = pd.read_parquet(yval_.path + \".parquet\")\n\n    dtrain = xgb.DMatrix(Xtrain, ytrain)\n    dval = xgb.DMatrix(Xval, yval)\n\n    scale_pos_weight=ytrain.value_counts(normalize=True)[0]/ytrain.value_counts(normalize=True)[1]     \n    params = {\n        'objective':'binary:logistic',\n        'gamma': 1, \n        'verbosity': 0, \n        'scale_pos_weight': 1.0, \n        'eta': 0.32924394564404313, \n        'colsample_bytree': 0.6997715470767337, \n        'num_iterations': 259.98061008076706, \n        'lambda': 9.840799645070883, \n        'n_estimators': 372, \n        'max_depth': 5, \n        'feature_fraction': 0,\n        'eval_metric':'auc',\n        'scale_pos_weight': scale_pos_weight\n    }\n\n    bst = xgb.train(params, dtrain, 20)\n\n    # evaluate model performance\n    #-------------------------------------------------------\n    predicted_yval = bst.predict(dval)\n    predicted_yval = [1 if i>0.54 else 0 for i in predicted_yval]\n    metrics_dict = {\n        'roc':float(bst.eval_set([(dval, '0')]).split(':')[1]),\n        'precision':precision_score(yval, predicted_yval),\n        'recall':recall_score(yval, predicted_yval),\n        'f1':f1_score(yval, predicted_yval)\n    }\n    metrics = pd.DataFrame(metrics_dict, index=[0])\n\n    # save model performance metrics\n    #------------------------------------------------------- \n    metrics.to_parquet(metrics_.path + '.parquet', index=False, compression='gzip')\n\n    # save model artifacts locally\n    #-------------------------------------------------------\n    bst.save_model('model.bst')\n\n    # upload local model to cloud storage\n    #-------------------------------------------------------\n    bucket_name=bucket\n    model_file=artifact_path + 'model.bst'\n    storage_client = storage.Client()\n    bucket = storage_client.get_bucket(bucket_name)\n    blob = bucket.blob(model_file)\n    blob.upload_from_filename('model.bst')\n\n    # save model as pipeline artifact\n    #-------------------------------------------------------\n    model_.metadata['framework'] = 'xgb'\n    bst.save_model(model_.path + '.bst')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-churn-"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "condition-deploy-endpoint-1": {
+            "componentRef": {
+              "name": "comp-condition-deploy-endpoint-1"
+            },
+            "dependentTasks": [
+              "evaluate-model",
+              "feature-engineering-sequence",
+              "feature-selection-sequence",
+              "train-model"
+            ],
+            "inputs": {
+              "artifacts": {
+                "pipelineparam--feature-engineering-sequence-fe_pipeline_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "fe_pipeline_",
+                    "producerTask": "feature-engineering-sequence"
+                  }
+                },
+                "pipelineparam--feature-selection-sequence-baseline_df_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "baseline_df_",
+                    "producerTask": "feature-selection-sequence"
+                  }
+                },
+                "pipelineparam--feature-selection-sequence-fs_pipeline_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "fs_pipeline_",
+                    "producerTask": "feature-selection-sequence"
+                  }
+                },
+                "pipelineparam--train-model-metrics_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "metrics_",
+                    "producerTask": "train-model"
+                  }
+                },
+                "pipelineparam--train-model-model_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "model_",
+                    "producerTask": "train-model"
+                  }
+                }
+              },
+              "parameters": {
+                "pipelineparam--artifact_path": {
+                  "componentInputParameter": "artifact_path"
+                },
+                "pipelineparam--bucket": {
+                  "componentInputParameter": "bucket"
+                },
+                "pipelineparam--consolidated_artifacts_path": {
+                  "componentInputParameter": "consolidated_artifacts_path"
+                },
+                "pipelineparam--evaluate-model-deploy": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "deploy",
+                    "producerTask": "evaluate-model"
+                  }
+                },
+                "pipelineparam--model_label": {
+                  "componentInputParameter": "model_label"
+                },
+                "pipelineparam--model_serving_image": {
+                  "componentInputParameter": "model_serving_image"
+                },
+                "pipelineparam--project_id": {
+                  "componentInputParameter": "project_id"
+                },
+                "pipelineparam--region": {
+                  "componentInputParameter": "region"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "condition-deploy-endpoint-1"
+            },
+            "triggerPolicy": {
+              "condition": "inputs.parameters['pipelineparam--evaluate-model-deploy'].string_value == 'true'"
+            }
+          },
+          "evaluate-model": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-evaluate-model"
+            },
+            "dependentTasks": [
+              "train-model"
+            ],
+            "inputs": {
+              "artifacts": {
+                "metrics_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "metrics_",
+                    "producerTask": "train-model"
+                  }
+                }
+              },
+              "parameters": {
+                "roc_threshold": {
+                  "componentInputParameter": "roc_threshold"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "evaluate-model"
+            }
+          },
+          "feature-engineering-sequence": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-feature-engineering-sequence"
+            },
+            "dependentTasks": [
+              "get-preprocessed-data"
+            ],
+            "inputs": {
+              "artifacts": {
+                "Xtrain_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xtrain_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                },
+                "Xval_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xval_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "feature-engineering-sequence"
+            }
+          },
+          "feature-selection-sequence": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-feature-selection-sequence"
+            },
+            "dependentTasks": [
+              "feature-engineering-sequence",
+              "get-preprocessed-data"
+            ],
+            "inputs": {
+              "artifacts": {
+                "Xtrain_fe": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xtrain_fe",
+                    "producerTask": "feature-engineering-sequence"
+                  }
+                },
+                "Xval_fe": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xval_fe",
+                    "producerTask": "feature-engineering-sequence"
+                  }
+                },
+                "ytrain_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "ytrain_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                },
+                "yval_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "yval_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "feature-selection-sequence"
+            }
+          },
+          "get-preprocessed-data": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-get-preprocessed-data"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--bucket": {
+                  "componentInputParameter": "bucket"
+                },
+                "prefix": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gs://{{$.inputs.parameters['pipelineparam--bucket']}}/data/processed/input/"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "get-preprocessed-data"
+            }
+          },
+          "train-model": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-train-model"
+            },
+            "dependentTasks": [
+              "feature-selection-sequence",
+              "get-preprocessed-data"
+            ],
+            "inputs": {
+              "artifacts": {
+                "Xtrain_fs": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xtrain_fs",
+                    "producerTask": "feature-selection-sequence"
+                  }
+                },
+                "Xval_fs": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xval_fs",
+                    "producerTask": "feature-selection-sequence"
+                  }
+                },
+                "ytrain_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "ytrain_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                },
+                "yval_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "yval_",
+                    "producerTask": "get-preprocessed-data"
+                  }
+                }
+              },
+              "parameters": {
+                "artifact_path": {
+                  "componentInputParameter": "artifact_path"
+                },
+                "bucket": {
+                  "componentInputParameter": "bucket"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "train-model"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "artifact_path": {
+            "type": "STRING"
+          },
+          "bucket": {
+            "type": "STRING"
+          },
+          "consolidated_artifacts_path": {
+            "type": "STRING"
+          },
+          "model_label": {
+            "type": "STRING"
+          },
+          "model_serving_image": {
+            "type": "STRING"
+          },
+          "project_id": {
+            "type": "STRING"
+          },
+          "region": {
+            "type": "STRING"
+          },
+          "roc_threshold": {
+            "type": "DOUBLE"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.12"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "gs://gpa-churn/artifacts/pipeline-vertexai/",
+    "parameters": {
+      "artifact_path": {
+        "stringValue": "artifacts/training_pipeline/xgb/"
+      },
+      "bucket": {
+        "stringValue": "gpa-churn"
+      },
+      "consolidated_artifacts_path": {
+        "stringValue": "artifacts/training_pipeline/production/"
+      },
+      "model_label": {
+        "stringValue": "churn"
+      },
+      "model_serving_image": {
+        "stringValue": "us-docker.pkg.dev/vertex-ai/prediction/xgboost-cpu.1-5:latest"
+      },
+      "project_id": {
+        "stringValue": "gpa-poc-001"
+      },
+      "region": {
+        "stringValue": "us-central1"
+      },
+      "roc_threshold": {
+        "doubleValue": 0.8
+      }
+    }
+  }
+}

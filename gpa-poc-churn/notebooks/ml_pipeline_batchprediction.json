@@ -1,0 +1,358 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-get-prediction-data": {
+        "executorLabel": "exec-get-prediction-data",
+        "inputDefinitions": {
+          "parameters": {
+            "path": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "Xpred_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "cod_cliente_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "df_date_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-load-artifacts": {
+        "executorLabel": "exec-load-artifacts",
+        "inputDefinitions": {
+          "parameters": {
+            "path": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "fe_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fs_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-make-predictions": {
+        "executorLabel": "exec-make-predictions",
+        "inputDefinitions": {
+          "artifacts": {
+            "Xpred_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "cod_cliente_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "df_date_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fe_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "fs_pipeline_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model_": {
+              "artifactType": {
+                "schemaTitle": "system.Model",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "bucket": {
+              "type": "STRING"
+            },
+            "output_path": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "predictions_df_": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-get-prediction-data": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "get_prediction_data"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_prediction_data(\n    Xpred_: Output[Dataset],\n    cod_cliente_: Output[Dataset],\n    df_date_: Output[Dataset],\n    path:str='gs://gpa-churn/data/processed/input/'\n    ):\n\n    import os\n    import gc\n    import sys\n    import numpy as np\n    import pandas as pd\n    from google.cloud import storage\n\n    # extracting bucket and path info from path\n    #-------------------------------------------------------\n    bucket = path.split('/')[2]\n    path_ref = '/'.join(i for i in path.split('/')[3:-1])\n\n    # reading dataframes in path folder\n    #-------------------------------------------------------\n    storage_client = storage.Client()\n    obj_list = storage_client.list_blobs(bucket)\n    obj_list = [i.name for i in obj_list if path_ref in i.name]\n    obj_list = obj_list[1:]\n    df_list = []\n    for obj in obj_list:\n        local_df = pd.read_parquet(f'gs://{bucket}/{obj}')\n        df_list.append(local_df)\n        print(f'added {path}{obj}')\n\n    # concatenating df_list and saving cod_client column in an independent df\n    #-------------------------------------------------------\n    df = pd.concat(df_list, axis=0)\n    df.drop_duplicates(inplace=True)\n    df.reset_index(drop=True, inplace=True)\n    cod_cliente = df[['cod_cliente']].copy()\n    df_date = df[['date']].copy()\n\n    # selecting valid columns\n    #-------------------------------------------------------\n    df.drop(columns=['cod_cliente'], inplace=True)\n    target = 'target'\n    features = list(df.columns)\n    features = [i for i in features if i != target]\n    Xpred = df[features]\n    print('Successfully read prediction data.')\n    print('shapes:')\n    print(f'xtrain:{Xpred.shape}')\n\n    # saving output datasets in pipeline\n    #-------------------------------------------------------\n    Xpred.to_parquet(Xpred_.path + '.parquet', index=False, compression='gzip')\n    cod_cliente.to_parquet(cod_cliente_.path + '.parquet', index=False, compression='gzip')\n    df_date.to_parquet(df_date_.path + '.parquet', index=False, compression='gzip')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-load-artifacts": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "load_artifacts"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef load_artifacts(\n    fe_pipeline_: Output[Model],\n    fs_pipeline_: Output[Model],\n    model_: Output[Model],\n    path:str='gs://gpa-churn/artifacts/training_pipeline/production/'\n    ):\n\n    import os\n    import sys\n    import json\n    import pytz\n    import joblib\n    import pandas as pd\n    import xgboost as xgb\n    from io import BytesIO\n    from datetime import datetime\n    from google.cloud import storage\n    from sklearn.pipeline import Pipeline\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.pipeline_modules as pipeline_modules\n\n    # extracting bucket and path info from prefix\n    #-------------------------------------------------------\n    bucket_name = path.split('/')[2]\n    path_ref = '/'.join(i for i in path.split('/')[3:-1])\n\n    # creating storage access point\n    #-------------------------------------------------------\n    storage_client = storage.Client()\n    bucket = storage_client.get_bucket(bucket_name)\n\n    # reading pipeline artifacts\n    #-------------------------------------------------------\n    pipe_dict = {\n        'fe_pipeline':None,\n        'fs_pipeline':None\n    }\n\n    for pipe in pipe_dict.keys():\n        art_file=f'{path_ref}/{pipe}.joblib'\n        blob = bucket.blob(art_file)\n        art_obj = BytesIO()\n        blob.download_to_file(art_obj)\n        pipe_dict[pipe]=joblib.load(art_obj)\n\n    # saving feature engineering and selection artifacts within pipeline\n    #-------------------------------------------------------\n    obj_list = [fe_pipeline_, fs_pipeline_]\n    key_list = list(pipe_dict.keys())\n    for i in range(len(obj_list)):\n        file_name = obj_list[i].path + '.joblib'\n        with open(file_name, 'wb') as file:\n            joblib.dump(pipe_dict[key_list[i]], file)\n\n    # reading model artifact\n    #-------------------------------------------------------\n    model_file = 'model.bst'\n    art_file=f'{path_ref}/{model_file}'\n    blob = bucket.blob(art_file)\n    blob.download_to_filename(model_file)\n    bst = xgb.Booster()\n    bst.load_model(model_file)\n\n    # saving endpoint_information artifact within pipeline\n    #-------------------------------------------------------\n    model_.metadata['framework'] = 'xgb'\n    bst.save_model(model_.path + '.bst')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        },
+        "exec-make-predictions": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "make_predictions"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef make_predictions(\n    Xpred_: Input[Dataset],\n    cod_cliente_: Input[Dataset],\n    df_date_: Input[Dataset],\n    model_: Input[Model],\n    fe_pipeline_: Input[Model],\n    fs_pipeline_: Input[Model],\n    predictions_df_: Output[Dataset],\n    bucket:str='gpa-churn',\n    output_path:str='data/processed/batch_output/'\n    ):\n\n    import os\n    import sys\n    import pytz\n    import uuid\n    import joblib\n    import pandas as pd\n    import xgboost as xgb\n    from datetime import datetime\n    from google.cloud import storage\n    from google.cloud import aiplatform\n    from sklearn.pipeline import Pipeline\n\n    sys.path.append('/usr/app/')\n    sys.path.append('/usr/app/src')\n    import src.utils as utils\n    import src.pipeline_modules as pipeline_modules\n\n    # loading artifacts\n    #-------------------------------------------------------\n    bst = xgb.Booster()\n    bst.load_model(model_.path+'.bst')\n    fe_pipeline = joblib.load(fe_pipeline_.path+'.joblib')\n    fs_pipeline = joblib.load(fs_pipeline_.path+'.joblib')\n\n    # reading input arguments\n    #-------------------------------------------------------\n    Xpred = pd.read_parquet(Xpred_.path+'.parquet')\n    cod_cliente = pd.read_parquet(cod_cliente_.path+'.parquet')\n    df_date = pd.read_parquet(df_date_.path+'.parquet')\n\n    # applying pipelines\n    #-------------------------------------------------------\n    Xpred = fe_pipeline.transform(Xpred)\n    Xpred = fs_pipeline.transform(Xpred)\n\n    # making predictions\n    #-------------------------------------------------------\n    ypred = list(bst.predict(xgb.DMatrix(Xpred)))\n\n    # applying cod_cliente as index\n    #-------------------------------------------------------\n    predictions_df = pd.DataFrame()\n    predictions_df['cod_cliente'] = cod_cliente['cod_cliente']\n    predictions_df['churn_prediction'] = ypred\n    predictions_df['reference_date'] = df_date['date']\n    predictions_df['prediction_time'] = datetime.now().strftime(format='%Y-%m-%d %H:%M:%S')\n    predictions_df['model_stage'] = 'poc'\n\n    # saving predictions dataframe in pipeline and in output_path\n    #-------------------------------------------------------\n    predictions_df.to_parquet(predictions_df_.path+'.parquet', index=False, compression='gzip')\n\n    # upload predictions output to cloud storage\n    #-------------------------------------------------------\n    predictions_df.to_parquet('predictions.parquet', index=False, compression='gzip')\n    storage_client = storage.Client()\n    bucket = storage_client.get_bucket(bucket)\n    storage_file= f'{output_path}predictions.parquet'\n    blob = bucket.blob(storage_file)\n    blob.upload_from_filename('predictions.parquet')\n\n"
+            ],
+            "image": "gcr.io/gpa-poc-001/churn-base-image-src-xgb@sha256:61db16ec13bba7d8023fff61329c6c28a7eb119f8f837fce4c09258776c16727"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-churn-batchprediction-"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "get-prediction-data": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-get-prediction-data"
+            },
+            "inputs": {
+              "parameters": {
+                "path": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gs://{{$.inputs.parameters['pipelineparam--bucket']}}/{{$.inputs.parameters['pipelineparam--input_data_path']}}"
+                    }
+                  }
+                },
+                "pipelineparam--bucket": {
+                  "componentInputParameter": "bucket"
+                },
+                "pipelineparam--input_data_path": {
+                  "componentInputParameter": "input_data_path"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "get-prediction-data"
+            }
+          },
+          "load-artifacts": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-load-artifacts"
+            },
+            "inputs": {
+              "parameters": {
+                "path": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gs://{{$.inputs.parameters['pipelineparam--bucket']}}/{{$.inputs.parameters['pipelineparam--artifacts_path']}}"
+                    }
+                  }
+                },
+                "pipelineparam--artifacts_path": {
+                  "componentInputParameter": "artifacts_path"
+                },
+                "pipelineparam--bucket": {
+                  "componentInputParameter": "bucket"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "load-artifacts"
+            }
+          },
+          "make-predictions": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-make-predictions"
+            },
+            "dependentTasks": [
+              "get-prediction-data",
+              "load-artifacts"
+            ],
+            "inputs": {
+              "artifacts": {
+                "Xpred_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "Xpred_",
+                    "producerTask": "get-prediction-data"
+                  }
+                },
+                "cod_cliente_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "cod_cliente_",
+                    "producerTask": "get-prediction-data"
+                  }
+                },
+                "df_date_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "df_date_",
+                    "producerTask": "get-prediction-data"
+                  }
+                },
+                "fe_pipeline_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "fe_pipeline_",
+                    "producerTask": "load-artifacts"
+                  }
+                },
+                "fs_pipeline_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "fs_pipeline_",
+                    "producerTask": "load-artifacts"
+                  }
+                },
+                "model_": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "model_",
+                    "producerTask": "load-artifacts"
+                  }
+                }
+              },
+              "parameters": {
+                "bucket": {
+                  "componentInputParameter": "bucket"
+                },
+                "output_path": {
+                  "componentInputParameter": "predictions_path"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "make-predictions"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "artifacts_path": {
+            "type": "STRING"
+          },
+          "bucket": {
+            "type": "STRING"
+          },
+          "input_data_path": {
+            "type": "STRING"
+          },
+          "predictions_path": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.12"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "gs://gpa-churn/artifacts/pipeline-vertexai/",
+    "parameters": {
+      "artifacts_path": {
+        "stringValue": "artifacts/training_pipeline/production/"
+      },
+      "bucket": {
+        "stringValue": "gpa-churn"
+      },
+      "input_data_path": {
+        "stringValue": "data/processed/input/"
+      },
+      "predictions_path": {
+        "stringValue": "data/processed/batch_output/"
+      }
+    }
+  }
+}
